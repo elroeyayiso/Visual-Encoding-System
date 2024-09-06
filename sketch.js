@@ -1,94 +1,70 @@
-let center;
-let centerRadius = 75;  // Increased size
-let numOuterBalls = 12;
-let outerBalls = [];
-let outerRadius = 35;  // Increased size
-let colors = [
-  '#C86464', '#969632', '#329664',
-  '#6464C8', '#963296', '#C89664',
-  '#64C864', '#326496', '#9632C8',
-  '#C86496', '#64C8C8', '#96C832'
-];
-let labels = [
-  "Community Support", "Indvidual Needs", "Economical Needs",
-  "Economic Status,", "Community Health", "Status",
-  "Stigma", " Healthcare Education", "Professional Help",
-  "Faith-Based Health Initiatives", "Healthcare  Access", "Cultural Sensitivity "
-];
-let dragging = [];
-let draggedIndex = -1;
+let centerX, centerY;
+let numRings = 20;   // Number of concentric rings
+let numLines = 60;   // Number of radial lines
+let randomness = 10; // Amount of randomness
+
+let currentRing = 1;
+let currentLine = 0;
 
 function setup() {
-  createCanvas(1000,700);
-  center = createVector(width / 2, height / 2);
-
-  // Initialize positions for the outer balls
-  let angleStep = TWO_PI / numOuterBalls;
-  let distanceFromCenter = 300; // Adjust this distance if needed
-  for (let i = 0; i < numOuterBalls; i++) {
-    let angle = i * angleStep;
-    let x = center.x + cos(angle) * distanceFromCenter;
-    let y = center.y + sin(angle) * distanceFromCenter;
-    outerBalls[i] = createVector(x, y);
-    dragging[i] = false;
-  }
+  createCanvas(800, 800);
+  centerX = width / 2;
+  centerY = height / 2;
+  background(255);  // White background
+  noFill();
+  frameRate(10);    // Slower speed of drawing
 }
 
 function draw() {
-  background('#98a2b2');
+  let angleStep = TWO_PI / numLines;
+  let ringStep = min(width, height) / (2 * numRings);
 
-  // Draw the central knot with a 3D effect
-  drawBall(center.x, center.y, centerRadius, color(100, 150, 200));
+  // Calculate randomness based on mouse position
+  randomness = map(mouseX, 0, width, 0, 10);
 
-  // Draw the threads and outer balls
-  for (let i = 0; i < outerBalls.length; i++) {
-    drawThread(center, outerBalls[i], color(colors[i]));
-    drawBall(outerBalls[i].x, outerBalls[i].y, outerRadius, color(colors[i]));
-  }
+  // Draw the current segment of the radial line
+  if (currentLine < numLines) {
+    setColorForLevel(currentRing);  // Set the color for the current ring
+    let angle = currentLine * angleStep + random(-PI / numLines, PI / numLines);
+    let radius = currentRing * ringStep + random(-randomness, randomness);
+    let nextRadius = (currentRing + 1) * ringStep + random(-randomness, randomness);
+    let x1 = centerX + cos(angle) * radius;
+    let y1 = centerY + sin(angle) * radius;
+    let x2 = centerX + cos(angle) * nextRadius;
+    let y2 = centerY + sin(angle) * nextRadius;
+    line(x1, y1, x2, y2);
 
-  // Add text labels
-  fill(0);
-  textSize(12);
-  textAlign(CENTER, CENTER);
-  for (let i = 0; i < outerBalls.length; i++) {
-    text(labels[i], outerBalls[i].x, outerBalls[i].y + outerRadius + 10);
-  }
+    // Move to the next line
+    currentLine++;
+  } else {
+    // Draw the current concentric ring
+    if (currentRing <= numRings) {
+      setColorForLevel(currentRing);  // Set the color for the current ring
+      let radius = currentRing * ringStep + random(-randomness, randomness);
+      beginShape();
+      for (let i = 0; i < numLines; i++) {
+        let angle = i * angleStep + random(-PI / numLines, PI / numLines);
+        let x = centerX + cos(angle) * radius;
+        let y = centerY + sin(angle) * radius;
+        vertex(x, y);
+      }
+      endShape(CLOSE);
 
-  // Dragging behavior
-  if (draggedIndex != -1) {
-    outerBalls[draggedIndex].x = mouseX;
-    outerBalls[draggedIndex].y = mouseY;
-  }
-}
-
-function drawBall(x, y, r, c) {
-  noStroke();
-  for (let i = 0; i < r; i++) {
-    let inter = map(i, 0, r, 0, 1);
-    fill(lerpColor(c, color(0), inter));
-    ellipse(x, y, r * 2 - i * 2, r * 2 - i * 2);
-  }
-}
-
-function drawThread(start, end, c) {
-  stroke(c);
-  strokeWeight(4);
-  line(start.x, start.y, end.x, end.y);
-}
-
-function mousePressed() {
-  for (let i = 0; i < outerBalls.length; i++) {
-    if (dist(mouseX, mouseY, outerBalls[i].x, outerBalls[i].y) < outerRadius) {
-      dragging[i] = true;
-      draggedIndex = i;
-      break;
+      // Move to the next ring
+      currentRing++;
+      currentLine = 0;
     }
   }
 }
 
-function mouseReleased() {
-  draggedIndex = -1;
-  for (let i = 0; i < outerBalls.length; i++) {
-    dragging[i] = false;
+function setColorForLevel(level) {
+  if (level == 1) {
+    stroke(255, 0, 0);  // Red for the central individual or household
+  } else if (level <= 5) {
+    stroke(0, 255, 0);  // Green for close family members
+  } else if (level <= 10) {
+    stroke(0, 0, 255);  // Blue for extended family and close friends
+  } else {
+    stroke(255, 165, 0);  // Orange for the wider community
   }
 }
